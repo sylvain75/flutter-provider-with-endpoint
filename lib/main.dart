@@ -1,4 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:provider/provider.dart';
+
+// main.dart
 
 void main() {
   runApp(const MyApp());
@@ -7,109 +13,443 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+    return Provider<DataUsaApiClient>(
+      create: (context) => const DataUsaApiClient(),
+      child: const MaterialApp(
+        home: HomePage(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+// home.dart
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class HomePage extends StatelessWidget {
+  const HomePage({
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text('Years'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Open "loaded" demo'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return Provider<DetailState>.value(
+                      value: const DetailState.loaded(
+                        year: 2022,
+                        measure: Measure(
+                          year: 2022,
+                          population: 425484,
+                          nation: 'United States',
+                        ),
+                      ),
+                      child: const DetailLayout(),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Open "loading" demo'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return Provider<DetailState>.value(
+                      value: const DetailState.loading(2022),
+                      child: const DetailLayout(),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Open "not data" demo'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return Provider<DetailState>.value(
+                      value: const DetailState.noData(2022),
+                      child: const DetailLayout(),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Open "error" demo'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return Provider<DetailState>.value(
+                      value: const DetailState.unknownError(
+                        year: 2022,
+                        error: 'Oops',
+                      ),
+                      child: const DetailLayout(),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          for (var i = DateTime.now().year; i > 2000; i--)
+            ListTile(
+              title: Text('$i'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    settings: RouteSettings(arguments: i),
+                    builder: (context) {
+                      return const DetailScreen();
+                    },
+                  ),
+                );
+              },
+            )
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+// api.dart
+
+class DataUsaApiClient {
+  const DataUsaApiClient({
+    this.endpoint = 'https://datausa.io/api/data',
+  });
+
+  final String endpoint;
+
+  Future<Measure?> getMeasure(int year) async {
+    final uri =
+        Uri.parse('$endpoint?drilldowns=Nation&measures=Population&year=$year');
+    final result = await get(uri);
+    final body = jsonDecode(result.body);
+    final data = body['data'] as List<dynamic>;
+    if (data.isNotEmpty) {
+      return Measure.fromJson(data.first as Map<String, Object?>);
+    }
+    return null;
+  }
+}
+
+class Measure {
+  const Measure({
+    required this.year,
+    required this.population,
+    required this.nation,
+  });
+
+  factory Measure.fromJson(Map<String, Object?> json) {
+    return Measure(
+      nation: json['Nation'] as String,
+      population: (json['Population'] as num).toInt(),
+      year: (json['ID Year'] as num).toInt(),
+    );
+  }
+
+  final int year;
+  final int population;
+  final String nation;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Measure &&
+          year == other.year &&
+          population == other.population &&
+          nation == other.nation);
+
+  @override
+  int get hashCode => Object.hash(year, population, nation);
+}
+
+class DemoDataUsaApiClient implements DataUsaApiClient {
+  const DemoDataUsaApiClient(this.measure);
+
+  final Measure measure;
+
+  @override
+  String get endpoint => '';
+
+  @override
+  Future<Measure?> getMeasure(int year) {
+    return Future.value(measure);
+  }
+}
+
+// state.dart
+
+abstract class DetailState {
+  const DetailState(this.year);
+  final int year;
+
+  const factory DetailState.notLoaded(int year) = NotLoadedDetailState;
+  const factory DetailState.loading(int year) = LoadingDetailState;
+  const factory DetailState.noData(int year) = NoDataDetailState;
+  const factory DetailState.loaded({
+    required int year,
+    required Measure measure,
+  }) = LoadedDetailState;
+  const factory DetailState.unknownError({
+    required int year,
+    required dynamic error,
+  }) = UnknownErrorDetailState;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DetailState &&
+          runtimeType == other.runtimeType &&
+          year == other.year);
+
+  @override
+  int get hashCode => runtimeType.hashCode ^ year;
+}
+
+class NotLoadedDetailState extends DetailState {
+  const NotLoadedDetailState(int year) : super(year);
+}
+
+class LoadedDetailState extends DetailState {
+  const LoadedDetailState({
+    required int year,
+    required this.measure,
+  }) : super(year);
+
+  final Measure measure;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoadedDetailState && measure == other.measure);
+
+  @override
+  int get hashCode => runtimeType.hashCode ^ measure.hashCode;
+}
+
+class NoDataDetailState extends DetailState {
+  const NoDataDetailState(int year) : super(year);
+}
+
+class LoadingDetailState extends DetailState {
+  const LoadingDetailState(int year) : super(year);
+}
+
+class UnknownErrorDetailState extends DetailState {
+  const UnknownErrorDetailState({
+    required int year,
+    required this.error,
+  }) : super(year);
+
+  final dynamic error;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UnknownErrorDetailState &&
+          year == other.year &&
+          error == other.error);
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, error.hashCode);
+}
+
+// notifier.dart
+
+class DetailNotifier extends ValueNotifier<DetailState> {
+  DetailNotifier({
+    required int year,
+    required this.api,
+  }) : super(DetailState.notLoaded(year));
+
+  final DataUsaApiClient api;
+
+  int get year => value.year;
+
+  Future<void> refresh() async {
+    if (value is! LoadingDetailState) {
+      value = DetailState.loading(year);
+      try {
+        final result = await api.getMeasure(year);
+        if (result != null) {
+          value = DetailState.loaded(
+            year: year,
+            measure: result,
+          );
+        } else {
+          value = DetailState.noData(year);
+        }
+      } catch (error) {
+        value = DetailState.unknownError(
+          year: year,
+          error: error,
+        );
+      }
+    }
+  }
+}
+
+// detail.dart
+
+class DetailScreen extends StatelessWidget {
+  const DetailScreen({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final year = ModalRoute.of(context)!.settings.arguments as int;
+    return ChangeNotifierProvider<DetailNotifier>(
+      create: (context) {
+        final notifier = DetailNotifier(
+          year: year,
+          api: context.read<DataUsaApiClient>(),
+        );
+        notifier.refresh();
+        return notifier;
+      },
+      child: ProxyProvider<DetailNotifier, DetailState>(
+        update: (context, value, previous) => value.value,
+        child: const DetailLayout(),
+      ),
+    );
+  }
+}
+
+class DetailLayout extends StatelessWidget {
+  const DetailLayout({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DetailState>(
+      builder: (context, state, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Year ${state.year}'),
+          ),
+          body: () {
+            if (state is NotLoadedDetailState || state is LoadingDetailState) {
+              return const LoadingDetailLayout();
+            }
+            if (state is LoadedDetailState) {
+              return LoadedDetailLayout(state: state);
+            }
+            if (state is UnknownErrorDetailState) {
+              return UnknownErrorDetailLayout(state: state);
+            }
+            return const NoDataDetailLayout();
+          }(),
+        );
+      },
+    );
+  }
+}
+
+class LoadedDetailLayout extends StatelessWidget {
+  const LoadedDetailLayout({
+    Key? key,
+    required this.state,
+  }) : super(key: key);
+
+  final LoadedDetailState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            state.measure.nation,
+            style: theme.textTheme.headline5,
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${state.measure.population}',
+                style: theme.textTheme.headline4,
+              ),
+              Icon(
+                Icons.people,
+                color: theme.textTheme.headline4?.color,
+                size: theme.textTheme.headline4?.fontSize,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    ;
+  }
+}
+
+class NoDataDetailLayout extends StatelessWidget {
+  const NoDataDetailLayout({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text('No data'),
+    );
+  }
+}
+
+class UnknownErrorDetailLayout extends StatelessWidget {
+  const UnknownErrorDetailLayout({
+    Key? key,
+    required this.state,
+  }) : super(key: key);
+
+  final UnknownErrorDetailState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text('Failed : ${state.error}'),
+    );
+  }
+}
+
+class LoadingDetailLayout extends StatelessWidget {
+  const LoadingDetailLayout({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(),
     );
   }
 }
